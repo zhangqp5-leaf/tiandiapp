@@ -120,12 +120,13 @@ const initCesium = async () => {
   viewer.camera.flyTo({
       destination: Cesium.Cartesian3.fromDegrees(103.84, 31.15, 17850000),
       orientation: {
-          heading :  Cesium.Math.toRadians(348.4202942851978),
-          pitch : Cesium.Math.toRadians(-89.74026687972041),
-          roll : Cesium.Math.toRadians(0)
+          heading: Cesium.Math.toRadians(348.4202942851978),
+          pitch: Cesium.Math.toRadians(-89.74026687972041),
+          roll: Cesium.Math.toRadians(0)
       },
-      complete:function callback() {
-          // 定位完成之后的回调函数
+      complete: function callback() {
+          // 启动自动旋转
+          startAutoRotate();
       }
   });
 
@@ -194,7 +195,7 @@ const initCesium = async () => {
 
   wtfs.initTDT([{"x":6,"y":1,"level":2,"boundBox":{"minX":90,"minY":0,"maxX":135,"maxY":45}},{"x":7,"y":1,"level":2,"boundBox":{"minX":135,"minY":0,"maxX":180,"maxY":45}},{"x":6,"y":0,"level":2,"boundBox":{"minX":90,"minY":45,"maxX":135,"maxY":90}},{"x":7,"y":0,"level":2,"boundBox":{"minX":135,"minY":45,"maxX":180,"maxY":90}},{"x":5,"y":1,"level":2,"boundBox":{"minX":45,"minY":0,"maxX":90,"maxY":45}},{"x":4,"y":1,"level":2,"boundBox":{"minX":0,"minY":0,"maxX":45,"maxY":45}},{"x":5,"y":0,"level":2,"boundBox":{"minX":45,"minY":45,"maxX":90,"maxY":90}},{"x":4,"y":0,"level":2,"boundBox":{"minX":0,"minY":45,"maxX":45,"maxY":90}},{"x":6,"y":2,"level":2,"boundBox":{"minX":90,"minY":-45,"maxX":135,"maxY":0}},{"x":6,"y":3,"level":2,"boundBox":{"minX":90,"minY":-90,"maxX":135,"maxY":-45}},{"x":7,"y":2,"level":2,"boundBox":{"minX":135,"minY":-45,"maxX":180,"maxY":0}},{"x":5,"y":2,"level":2,"boundBox":{"minX":45,"minY":-45,"maxX":90,"maxY":0}},{"x":4,"y":2,"level":2,"boundBox":{"minX":0,"minY":-45,"maxX":45,"maxY":0}},{"x":3,"y":1,"level":2,"boundBox":{"minX":-45,"minY":0,"maxX":0,"maxY":45}},{"x":3,"y":0,"level":2,"boundBox":{"minX":-45,"minY":45,"maxX":0,"maxY":90}},{"x":2,"y":0,"level":2,"boundBox":{"minX":-90,"minY":45,"maxX":-45,"maxY":90}},{"x":0,"y":1,"level":2,"boundBox":{"minX":-180,"minY":0,"maxX":-135,"maxY":45}},{"x":1,"y":0,"level":2,"boundBox":{"minX":-135,"minY":45,"maxX":-90,"maxY":90}},{"x":0,"y":0,"level":2,"boundBox":{"minX":-180,"minY":45,"maxX":-135,"maxY":90}}]);
 
-
+  addLatLongGrid(viewer);
 
   // 添加地形
   // try {
@@ -202,6 +203,13 @@ const initCesium = async () => {
   // } catch (error) {
   //   console.error('地形加载失败:', error)
   // }
+}
+
+// 添加自动旋转函数
+const startAutoRotate = () => {
+  viewer.clock.onTick.addEventListener((clock) => {
+    viewer.camera.rotate(Cesium.Cartesian3.UNIT_Z, 0.002); // 调整 0.002 这个值可以改变旋转速度
+  });
 }
 
 const handleClickClimateButton = () => {
@@ -218,6 +226,58 @@ const handleClickClimateButton = () => {
     // viewer.zoomTo(climateDataSourceGeo);
   }
   climateButtonVisible.value = !climateButtonVisible.value;
+}
+
+/**
+ * 添加经纬网
+ */
+const addLatLongGrid = (viewer) => {
+  // 添加经纬网格
+  viewer.scene.globe.enableLighting = false;
+  viewer.scene.globe.showGroundAtmosphere = true;
+  
+  // 显示经纬网格
+  const graticule = new Cesium.GridImageryProvider({
+    cells: 5,
+    color: new Cesium.Color(1.0, 1.0, 1.0, 0.4),
+    glowColor: new Cesium.Color(0.0, 1.0, 0.0, 0.05),
+    glowWidth: 1,
+    backgroundColor: new Cesium.Color(0.0, 0.0, 0.0, 0.0),
+  });
+  viewer.scene.imageryLayers.addImageryProvider(graticule);
+
+  // 添加经纬度标注
+  for (let lon = -180; lon <= 180; lon += 10) {
+    viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(lon, 0),
+      label: {
+        text: lon + '°',
+        font: '12px sans-serif',
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 2,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: Cesium.VerticalOrigin.TOP,
+        pixelOffset: new Cesium.Cartesian2(0, 5)
+      }
+    });
+  }
+
+  for (let lat = -80; lat <= 80; lat += 10) {
+    viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(0, lat),
+      label: {
+        text: lat + '°',
+        font: '12px sans-serif',
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 2,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
+        pixelOffset: new Cesium.Cartesian2(5, 0)
+      }
+    });
+  }
 }
 
 // 生命周期
