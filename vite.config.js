@@ -1,6 +1,5 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
-import cesium from 'vite-plugin-cesium'
 
 const host = process.env.TAURI_DEV_HOST;
 
@@ -8,24 +7,9 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(async () => ({
   plugins: [
     vue(),
-    cesium({
-      // 可选高级配置
-      cesiumBuildRoot: './node_modules/cesium/Build/Cesium',
-      cesiumBuildPath: 'Cesium'
-    })
   ],
   build: {
-    assetsInlineLimit: 0, // 禁用资源内联
-    sourcemap: true,       // 推荐开启源码映射
     assetsDir: 'static',
-    rollupOptions: {
-      input: {
-        main: './index.html'
-      },
-      output: {
-        assetFileNames: 'static/[name][extname]'
-      }
-    }
   },
   resolve: {
     alias: {
