@@ -22,7 +22,7 @@ let climateDataSourceGeo = null;
 
 const climateButtonVisible = ref(false)
 
-var token = '99bbaf2e86c45694e6e69415fb6739da';
+var token = '88f746013d48f98c5f8d57c5344bc812';
 // 服务域名
 var tdtUrl = 'https://t{s}.tianditu.gov.cn/';
 // 服务负载子域
@@ -99,22 +99,22 @@ const initCesium = async () => {
   viewer.imageryLayers.addImageryProvider(iboMap);
 
   // 叠加地形服务
-  try {
-    var terrainUrls = new Array();
+  // try {
+  //   var terrainUrls = new Array();
 
-    for (var i = 0; i < subdomains.length; i++){
-      var url = tdtUrl.replace('{s}', subdomains[i]) + 'mapservice/swdx?T=elv_c&tk=' + token;
-      terrainUrls.push(url);
-    }
+  //   for (var i = 0; i < subdomains.length; i++){
+  //     var url = tdtUrl.replace('{s}', subdomains[i]) + 'mapservice/swdx?T=elv_c&tk=' + token;
+  //     terrainUrls.push(url);
+  //   }
 
-    var provider = new Cesium.GeoTerrainProvider({
-      urls: terrainUrls
-    });
+  //   var provider = new Cesium.GeoTerrainProvider({
+  //     urls: terrainUrls
+  //   });
 
-    viewer.terrainProvider = provider;
-  } catch (error) {
-    console.log({error});
-  }
+  //   viewer.terrainProvider = provider;
+  // } catch (error) {
+  //   console.log({error});
+  // }
 
   // 将三维球定位到中国
   viewer.camera.flyTo({
@@ -126,7 +126,7 @@ const initCesium = async () => {
       },
       complete: function callback() {
           // 启动自动旋转
-          startAutoRotate();
+          // startAutoRotate();
       }
   });
 
@@ -228,6 +228,81 @@ const handleClickClimateButton = () => {
   climateButtonVisible.value = !climateButtonVisible.value;
 }
 
+const test = (viewer) => {
+	const entities = viewer.entities;
+  const _label = {
+    font: '12px sans-serif',
+    fillColor: Cesium.Color.WHITE,
+    outlineColor: Cesium.Color.BLACK,
+    outlineWidth: 2,
+    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+    verticalOrigin: Cesium.VerticalOrigin.TOP,
+    pixelOffset: new Cesium.Cartesian2(0, 5)
+  };
+	// 每隔20°绘制一条经度线
+  for (let long = -180; long <= 180; long += 15) {
+      let text = "";
+      if (long === 0) {
+          text = "0";
+      }
+      text += long === 0 ? "" : "" + long + "°";
+      if (long === -180) {
+          text = "";
+      }
+      entities.add({
+          position: Cesium.Cartesian3.fromDegrees(long, 0),
+          polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArray([
+                  long,
+                  -90,
+                  long,
+                  0,
+                  long,
+                  90,
+              ]),
+              width: 1.0,
+              material: Cesium.Color.WHITE,
+          },
+          label: {
+              text: text,
+              ..._label,
+          },
+      });
+  }
+  let longS = [];
+  for (let long = -180; long <= 180; long += 5) {
+      longS.push(long);
+  }
+  //每隔10°绘制一条纬度线
+  for (let lat = -75; lat <= 75; lat += 15) {
+      let text = "";
+      text += "" + lat + "°";
+      if (lat === 0) {
+          text = "";
+      }
+      entities.add({
+          position: Cesium.Cartesian3.fromDegrees(0, lat),
+          polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArray(
+                  longS
+                      .map((long) => {
+                          return [long, lat].join(",");
+                      })
+                      .join(",")
+                      .split(",")
+                      .map((item) => Number(item))
+              ),
+              width: 1.0,
+              material: Cesium.Color.WHITE,
+          },
+          label: {
+              text: text,
+              ..._label,
+          },
+      });
+  }
+}
+
 /**
  * 添加经纬网
  */
@@ -235,6 +310,8 @@ const addLatLongGrid = (viewer) => {
   // 添加经纬网格
   viewer.scene.globe.enableLighting = false;
   viewer.scene.globe.showGroundAtmosphere = true;
+  test(viewer);
+  return;
   
   // 显示经纬网格
   const graticule = new Cesium.GridImageryProvider({
@@ -280,6 +357,64 @@ const addLatLongGrid = (viewer) => {
   }
 }
 
+// 获取视口中心的经线
+const getCenterLongitude = () => {
+  const center = viewer.camera.positionCartographic;
+  const centerLongitude = Cesium.Math.toDegrees(center.longitude);
+  return centerLongitude;
+};
+
+// 在视口中心的经线上显示纬度度数
+const showLatitudeLabelsOnCenterLongitude = (range = 5, interval = 15) => {
+  const centerLongitude = getCenterLongitude();
+  
+  // 移除之前的纬度标注
+  removeLatitudeLabels();
+
+  // 计算并添加标注
+  for (let i = -range; i <= range; i++) {
+    const latitude = i * interval;
+    viewer.entities.add({
+      id: `latitude-label-${latitude}`, // 为每个标注设置唯一的 id
+      position: Cesium.Cartesian3.fromDegrees(centerLongitude, latitude),
+      label: {
+        text: latitude + '°',
+        font: '12px sans-serif',
+        fillColor: Cesium.Color.WHITE,
+        outlineColor: Cesium.Color.BLACK,
+        outlineWidth: 2,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: Cesium.VerticalOrigin.TOP,
+        pixelOffset: new Cesium.Cartesian2(0, 5)
+      }
+    });
+  }
+};
+
+// 移除之前的纬度标注
+const removeLatitudeLabels = () => {
+  const entities = viewer.entities.values;
+  for (let i = entities.length - 1; i >= 0; i--) {
+    if (entities[i].id && entities[i].id.startsWith('latitude-label-')) {
+      viewer.entities.remove(entities[i]);
+    }
+  }
+};
+
+// 监听相机变化事件
+const setupCameraChangeListener = () => {
+  let lastCenterLongitude = getCenterLongitude();
+
+  viewer.camera.changed.addEventListener(() => {
+    const currentCenterLongitude = getCenterLongitude();
+    // 如果中心经线发生变化，更新标注
+    if (Math.abs(currentCenterLongitude - lastCenterLongitude) >= 7.5) {
+      showLatitudeLabelsOnCenterLongitude();
+      lastCenterLongitude = currentCenterLongitude;
+    }
+  });
+};
+
 // 生命周期
 onMounted(async () => {
   await initCesium();
@@ -289,6 +424,10 @@ onMounted(async () => {
     strokeWidth: 2
   });
   climateDataSourceGeo.name = 'climateLayer';
+  // 显示视口中心的经线上纬度标注
+  showLatitudeLabelsOnCenterLongitude();
+  // 设置相机变化监听器
+  setupCameraChangeListener();
   console.log('Cesium Viewer 初始化完成')
 })
 
