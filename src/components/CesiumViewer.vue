@@ -1,12 +1,18 @@
 <template>
   <div ref="cesiumContainer" class="cesium-container">
     <div class="panel">
-      <div class="centerer" @click="handleClickClimateButton">
-        <a href="#" class="button">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</a>
-        
-        <span class="myButton fire">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-        <span class="myButton ice">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      </div>
+      <span @click="resetPage" class="myButton fire">重置</span>
+      <span @click="resetLatLongGrid" class="myButton ice">重置经纬网</span>
+      <span @click="operateClimateLayer" class="myButton nature">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton mystic">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton metal">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton ocean">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton sunset">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton jade">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton rose-gold">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton aurora">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton night-sky">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="operateClimateLayer" class="myButton sakura">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
     </div>
   </div>
 </template>
@@ -32,6 +38,36 @@ var subdomains=['0','1','2','3','4','5','6','7'];
 const initCesium = async () => {
   if (!cesiumContainer.value) return
 
+  // 初始化Cesium Viewer
+  initViewer();
+
+  // 叠加影像服务
+  addImagery();
+
+  // 叠加国界服务
+  addBoundary();
+
+  // 叠加地形服务
+  // addTerrain();
+
+  // 添加初始位置
+  flyToInitPosition();
+
+  // 叠加三维地名服务
+  addGeoWTFS();
+
+  addLatLongGrid(viewer);
+
+  // 添加地形
+  // try {
+  //   viewer.terrainProvider = await Cesium.createWorldTerrainAsync()
+  // } catch (error) {
+  //   console.error('地形加载失败:', error)
+  // }
+}
+
+// 初始化Cesium Viewer
+const initViewer = () =>{
   viewer = new Cesium.Map(cesiumContainer.value, {
     shouldAnimate: true, //是否允许动画
     selectionIndicator: false,
@@ -79,8 +115,10 @@ const initCesium = async () => {
   ];
   // 取消默认的双击事件
   viewer.cesiumWidget.screenSpaceEventHandler.removeInputAction(Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
+}
 
-  // 叠加影像服务
+// 添加影像图层
+const addImagery = () => {
   var imgMap = new Cesium.UrlTemplateImageryProvider({
     url: tdtUrl + 'DataServer?T=img_w&x={x}&y={y}&l={z}&tk=' + token,
     subdomains: subdomains,
@@ -88,8 +126,10 @@ const initCesium = async () => {
     maximumLevel : 18
   });
   viewer.imageryLayers.addImageryProvider(imgMap); 
+}
 
-  // 叠加国界服务
+// 添加国界图层
+const addBoundary = () => {
   var iboMap = new Cesium.UrlTemplateImageryProvider({
     url: tdtUrl + 'DataServer?T=ibo_w&x={x}&y={y}&l={z}&tk=' + token,
     subdomains: subdomains,
@@ -97,8 +137,10 @@ const initCesium = async () => {
     maximumLevel : 10
   });
   viewer.imageryLayers.addImageryProvider(iboMap);
+}
 
-  // 叠加地形服务
+// 添加地形图层
+const addTerrain = () => {
   // try {
   //   var terrainUrls = new Array();
 
@@ -115,21 +157,33 @@ const initCesium = async () => {
   // } catch (error) {
   //   console.log({error});
   // }
+}
 
-  // 将三维球定位到中国
+// 添加初始位置
+const flyToInitPosition = () => {
   viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(103.84, 31.15, 17850000),
-      orientation: {
-          heading: Cesium.Math.toRadians(348.4202942851978),
-          pitch: Cesium.Math.toRadians(-89.74026687972041),
-          roll: Cesium.Math.toRadians(0)
-      },
-      complete: function callback() {
-          // 启动自动旋转
-          // startAutoRotate();
-      }
+    destination: Cesium.Cartesian3.fromDegrees(103.84, 31.15, 17850000),
+    orientation: {
+      heading: Cesium.Math.toRadians(348.4202942851978),
+      pitch: Cesium.Math.toRadians(-89.74026687972041),
+      roll: Cesium.Math.toRadians(0)
+    },
+    complete: function callback() {
+      // 启动自动旋转
+      // startAutoRotate();
+    }
   });
+}
 
+// 添加自动旋转函数
+const startAutoRotate = () => {
+  viewer.clock.onTick.addEventListener((clock) => {
+    viewer.camera.rotate(Cesium.Cartesian3.UNIT_Z, 0.002); // 调整 0.002 这个值可以改变旋转速度
+  });
+}
+
+// 添加三维地名服务
+const addGeoWTFS = () => {
   // 叠加三维地名服务
   var wtfs = new Cesium.GeoWTFS({
     viewer,
@@ -181,7 +235,7 @@ const initCesium = async () => {
         height:18,
         disableDepthTestDistance:undefined
     }
-});
+  });
 
   //三维地名服务，使用wtfs服务
   wtfs.getTileUrl = function(){
@@ -194,41 +248,9 @@ const initCesium = async () => {
   }
 
   wtfs.initTDT([{"x":6,"y":1,"level":2,"boundBox":{"minX":90,"minY":0,"maxX":135,"maxY":45}},{"x":7,"y":1,"level":2,"boundBox":{"minX":135,"minY":0,"maxX":180,"maxY":45}},{"x":6,"y":0,"level":2,"boundBox":{"minX":90,"minY":45,"maxX":135,"maxY":90}},{"x":7,"y":0,"level":2,"boundBox":{"minX":135,"minY":45,"maxX":180,"maxY":90}},{"x":5,"y":1,"level":2,"boundBox":{"minX":45,"minY":0,"maxX":90,"maxY":45}},{"x":4,"y":1,"level":2,"boundBox":{"minX":0,"minY":0,"maxX":45,"maxY":45}},{"x":5,"y":0,"level":2,"boundBox":{"minX":45,"minY":45,"maxX":90,"maxY":90}},{"x":4,"y":0,"level":2,"boundBox":{"minX":0,"minY":45,"maxX":45,"maxY":90}},{"x":6,"y":2,"level":2,"boundBox":{"minX":90,"minY":-45,"maxX":135,"maxY":0}},{"x":6,"y":3,"level":2,"boundBox":{"minX":90,"minY":-90,"maxX":135,"maxY":-45}},{"x":7,"y":2,"level":2,"boundBox":{"minX":135,"minY":-45,"maxX":180,"maxY":0}},{"x":5,"y":2,"level":2,"boundBox":{"minX":45,"minY":-45,"maxX":90,"maxY":0}},{"x":4,"y":2,"level":2,"boundBox":{"minX":0,"minY":-45,"maxX":45,"maxY":0}},{"x":3,"y":1,"level":2,"boundBox":{"minX":-45,"minY":0,"maxX":0,"maxY":45}},{"x":3,"y":0,"level":2,"boundBox":{"minX":-45,"minY":45,"maxX":0,"maxY":90}},{"x":2,"y":0,"level":2,"boundBox":{"minX":-90,"minY":45,"maxX":-45,"maxY":90}},{"x":0,"y":1,"level":2,"boundBox":{"minX":-180,"minY":0,"maxX":-135,"maxY":45}},{"x":1,"y":0,"level":2,"boundBox":{"minX":-135,"minY":45,"maxX":-90,"maxY":90}},{"x":0,"y":0,"level":2,"boundBox":{"minX":-180,"minY":45,"maxX":-135,"maxY":90}}]);
-
-  addLatLongGrid(viewer);
-
-  // 添加地形
-  // try {
-  //   viewer.terrainProvider = await Cesium.createWorldTerrainAsync()
-  // } catch (error) {
-  //   console.error('地形加载失败:', error)
-  // }
 }
 
-// 添加自动旋转函数
-const startAutoRotate = () => {
-  viewer.clock.onTick.addEventListener((clock) => {
-    viewer.camera.rotate(Cesium.Cartesian3.UNIT_Z, 0.002); // 调整 0.002 这个值可以改变旋转速度
-  });
-}
-
-const handleClickClimateButton = () => {
-  if (climateButtonVisible.value) {
-    // 清除之前的图层
-    const existingSource = viewer.dataSources.getByName('climateLayer')[0];
-    if (existingSource) {
-      viewer.dataSources.remove(existingSource);
-    }
-  } else {
-    // 加载新的图层
-    viewer.dataSources.add(climateDataSourceGeo);
-    // 自动定位到数据范围
-    // viewer.zoomTo(climateDataSourceGeo);
-  }
-  climateButtonVisible.value = !climateButtonVisible.value;
-}
-
-const test = (viewer) => {
+const addManualLatLongGrid = (viewer) => {
 	const entities = viewer.entities;
   const _label = {
     font: '12px sans-serif',
@@ -250,23 +272,24 @@ const test = (viewer) => {
           text = "";
       }
       entities.add({
-          position: Cesium.Cartesian3.fromDegrees(long, 0),
-          polyline: {
-              positions: Cesium.Cartesian3.fromDegreesArray([
-                  long,
-                  -90,
-                  long,
-                  0,
-                  long,
-                  90,
-              ]),
-              width: 1.0,
-              material: Cesium.Color.WHITE,
-          },
-          label: {
-              text: text,
-              ..._label,
-          },
+        id: `longitude-line-${long}`,
+        position: Cesium.Cartesian3.fromDegrees(long, 0),
+        polyline: {
+            positions: Cesium.Cartesian3.fromDegreesArray([
+                long,
+                -90,
+                long,
+                0,
+                long,
+                90,
+            ]),
+            width: 1.0,
+            material: Cesium.Color.WHITE,
+        },
+        label: {
+            text: text,
+            ..._label,
+        },
       });
   }
   let longS = [];
@@ -281,27 +304,65 @@ const test = (viewer) => {
           text = "";
       }
       entities.add({
-          position: Cesium.Cartesian3.fromDegrees(0, lat),
-          polyline: {
-              positions: Cesium.Cartesian3.fromDegreesArray(
-                  longS
-                      .map((long) => {
-                          return [long, lat].join(",");
-                      })
-                      .join(",")
-                      .split(",")
-                      .map((item) => Number(item))
-              ),
-              width: 1.0,
-              material: Cesium.Color.WHITE,
-          },
-          label: {
-              text: text,
-              ..._label,
-          },
+        id: `latitude-line-${lat}`,
+        position: Cesium.Cartesian3.fromDegrees(0, lat),
+        polyline: {
+            positions: Cesium.Cartesian3.fromDegreesArray(
+                longS
+                    .map((long) => {
+                        return [long, lat].join(",");
+                    })
+                    .join(",")
+                    .split(",")
+                    .map((item) => Number(item))
+            ),
+            width: 1.0,
+            material: Cesium.Color.WHITE,
+        },
+        label: {
+            text: text,
+            ..._label,
+        },
       });
   }
 }
+
+// 点击经纬线使其高亮
+const toggleLineHighlight = (entity) => {
+  if (entity && entity.polyline) {
+
+    const currentMaterial = entity.polyline.material;
+    const isHighlighted = Cesium.Color.equals(currentMaterial.color._value, Cesium.Color.YELLOW);
+
+
+    entity.polyline.material = new Cesium.ColorMaterialProperty(isHighlighted ? Cesium.Color.WHITE : Cesium.Color.YELLOW);
+    entity.polyline.width = isHighlighted ? 1.0 : 3.0; // Change width when highlighted
+  }
+};
+
+// 添加hover event listener
+const setupHoverListener = () => {
+  const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+  handler.setInputAction((movement) => {
+    const pickedObject = viewer.scene.pick(movement.endPosition);
+    if (Cesium.defined(pickedObject) && pickedObject.id && pickedObject.id.polyline) {
+      viewer.scene.canvas.style.cursor = 'pointer'; // Change cursor to pointer
+    } else {
+      viewer.scene.canvas.style.cursor = 'default'; // Reset cursor
+    }
+  }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
+};
+
+// 添加 click event listener
+const setupClickListener = () => {
+  const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+  handler.setInputAction((click) => {
+    const pickedObject = viewer.scene.pick(click.position);
+    if (Cesium.defined(pickedObject) && pickedObject.id) {
+      toggleLineHighlight(pickedObject.id);
+    }
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+};
 
 /**
  * 添加经纬网
@@ -310,51 +371,11 @@ const addLatLongGrid = (viewer) => {
   // 添加经纬网格
   viewer.scene.globe.enableLighting = false;
   viewer.scene.globe.showGroundAtmosphere = true;
-  test(viewer);
-  return;
-  
-  // 显示经纬网格
-  const graticule = new Cesium.GridImageryProvider({
-    cells: 5,
-    color: new Cesium.Color(1.0, 1.0, 1.0, 0.4),
-    glowColor: new Cesium.Color(0.0, 1.0, 0.0, 0.05),
-    glowWidth: 1,
-    backgroundColor: new Cesium.Color(0.0, 0.0, 0.0, 0.0),
-  });
-  viewer.scene.imageryLayers.addImageryProvider(graticule);
+  addManualLatLongGrid(viewer);
 
-  // 添加经纬度标注
-  for (let lon = -180; lon <= 180; lon += 10) {
-    viewer.entities.add({
-      position: Cesium.Cartesian3.fromDegrees(lon, 0),
-      label: {
-        text: lon + '°',
-        font: '12px sans-serif',
-        fillColor: Cesium.Color.WHITE,
-        outlineColor: Cesium.Color.BLACK,
-        outlineWidth: 2,
-        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        verticalOrigin: Cesium.VerticalOrigin.TOP,
-        pixelOffset: new Cesium.Cartesian2(0, 5)
-      }
-    });
-  }
-
-  for (let lat = -80; lat <= 80; lat += 10) {
-    viewer.entities.add({
-      position: Cesium.Cartesian3.fromDegrees(0, lat),
-      label: {
-        text: lat + '°',
-        font: '12px sans-serif',
-        fillColor: Cesium.Color.WHITE,
-        outlineColor: Cesium.Color.BLACK,
-        outlineWidth: 2,
-        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-        horizontalOrigin: Cesium.HorizontalOrigin.LEFT,
-        pixelOffset: new Cesium.Cartesian2(5, 0)
-      }
-    });
-  }
+  // 添加监听
+  setupClickListener();
+  // setupHoverListener();
 }
 
 // 获取视口中心的经线
@@ -414,6 +435,47 @@ const setupCameraChangeListener = () => {
     }
   });
 };
+
+const operateClimateLayer = () => {
+  if (climateButtonVisible.value) {
+    // 清除之前的图层
+    const existingSource = viewer.dataSources.getByName('climateLayer')[0];
+    if (existingSource) {
+      viewer.dataSources.remove(existingSource);
+    }
+  } else {
+    // 加载新的图层
+    viewer.dataSources.add(climateDataSourceGeo);
+    // 自动定位到数据范围
+    // viewer.zoomTo(climateDataSourceGeo);
+  }
+  climateButtonVisible.value = !climateButtonVisible.value;
+}
+
+// 重置页面
+const resetPage = async () => {
+  if (viewer && !viewer.isDestroyed()) {
+    viewer.destroy();
+  }
+  viewer = null;
+  climateButtonVisible.value = false;
+  await initCesium();
+}
+
+// 重置经纬网
+const resetLatLongGrid = async () => {
+  const entities = viewer.entities.values;
+  for (let i = entities.length - 1; i >= 0; i--) {
+    if (entities[i].id && (entities[i].id.startsWith('longitude-line-') || entities[i].id.startsWith('latitude-line-'))) {
+      const _material = entities[i].polyline.material;
+      const isHighlighted = Cesium.Color.equals(_material.color._value, Cesium.Color.YELLOW);
+      if (isHighlighted) {
+        entities[i].polyline.material = new Cesium.ColorMaterialProperty(Cesium.Color.WHITE);
+        entities[i].polyline.width = 1.0;
+      }
+    }
+  }
+}
 
 // 生命周期
 onMounted(async () => {
