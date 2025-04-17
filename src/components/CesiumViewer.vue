@@ -3,30 +3,69 @@
     <div class="panel">
       <span @click="resetPage" class="myButton fire">重置</span>
       <span @click="resetLatLongGrid" class="myButton ice">重置经纬网</span>
-      <span @click="operateClimateLayer" class="myButton nature">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton mystic">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton metal">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton ocean">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton sunset">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton jade">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton rose-gold">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton aurora">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton night-sky">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
-      <span @click="operateClimateLayer" class="myButton sakura">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer('climateLayer')" class="myButton nature">{{visible.climateLayer ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer('demo')" class="myButton mystic">{{visible.demo ? '隐藏' : '显示'}}demo</span>
+      <span @click="() => operateLayer()" class="myButton metal">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer()" class="myButton ocean">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer()" class="myButton sunset">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer()" class="myButton jade">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer()" class="myButton rose-gold">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer()" class="myButton aurora">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer()" class="myButton night-sky">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
+      <span @click="() => operateLayer()" class="myButton sakura">{{climateButtonVisible ? '隐藏' : '显示'}}气候分布</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, reactive } from 'vue'
+import { simplify, rewind } from '@turf/turf'
 import geojsonDemo from '../assets/geo/geojsonDemo.js';
+import { coordEach } from '@turf/meta';
+
+function sanitizeGeoJSON(geojson) {
+  coordEach(geojson, (coord) => {
+    // 1. 标准化经度到 [-180, 180]
+    coord[0] = ((coord[0] + 180) % 360 + 360) % 360 - 180;
+    
+    // 2. 限制纬度到 [-90, 90]
+    coord[1] = Math.max(-90, Math.min(90, coord[1]));
+    
+    // 3. 坐标精度裁剪（避免浮点数误差）
+    coord[0] = Number(coord[0].toFixed(7));
+    coord[1] = Number(coord[1].toFixed(7));
+  });
+
+  // 4. 强制闭合多边形（处理精度导致的未闭合）
+  geojson.features.forEach(feature => {
+    if (feature.geometry.type === 'Polygon') {
+      feature.geometry.coordinates.forEach(ring => {
+        if (ring.length > 0) {
+          const first = ring[0].map(c => Number(c.toFixed(7)));
+          const last = ring[ring.length - 1].map(c => Number(c.toFixed(7)));
+          if (first[0] !== last[0] || first[1] !== last[1]) {
+            ring.push([...first]);
+          }
+        }
+      });
+    }
+  });
+
+  return geojson;
+}
+
 
 // 容器引用
 const cesiumContainer = ref()
 let viewer = null
 let climateDataSourceGeo = null;
+let climateDataSourceGeoDemo = null;
 
-const climateButtonVisible = ref(false)
+const climateButtonVisible = ref(false);
+const visible = reactive({
+  climateLayer: false,
+  demo: false,
+});
 
 var token = '88f746013d48f98c5f8d57c5344bc812';
 // 服务域名
@@ -436,20 +475,25 @@ const setupCameraChangeListener = () => {
   });
 };
 
-const operateClimateLayer = () => {
-  if (climateButtonVisible.value) {
+const operateLayer = (name=undefined) => {
+  if (!name) return;
+  if (visible[name]) {
     // 清除之前的图层
-    const existingSource = viewer.dataSources.getByName('climateLayer')[0];
+    const existingSource = viewer.dataSources.getByName(name)[0];
     if (existingSource) {
       viewer.dataSources.remove(existingSource);
     }
   } else {
     // 加载新的图层
-    viewer.dataSources.add(climateDataSourceGeo);
+    const layerMap = {
+      climateLayer: climateDataSourceGeo,
+      demo: climateDataSourceGeoDemo,
+    }
+    viewer.dataSources.add(layerMap[name]);
     // 自动定位到数据范围
     // viewer.zoomTo(climateDataSourceGeo);
   }
-  climateButtonVisible.value = !climateButtonVisible.value;
+  visible[name] = !visible[name];
 }
 
 // 重置页面
@@ -458,7 +502,7 @@ const resetPage = async () => {
     viewer.destroy();
   }
   viewer = null;
-  climateButtonVisible.value = false;
+  visible.climateLayer = false;
   await initCesium();
 }
 
@@ -480,12 +524,41 @@ const resetLatLongGrid = async () => {
 // 生命周期
 onMounted(async () => {
   await initCesium();
-  // 预加载气候图层
-  climateDataSourceGeo = await Cesium.GeoJsonDataSource.load(geojsonDemo, {
+  climateDataSourceGeoDemo = await Cesium.GeoJsonDataSource.load('/geo/geojsonDemo.geojson', {
     stroke: Cesium.Color.RED,
-    strokeWidth: 2
+    strokeWidth: 2,
+    fill: Cesium.Color.PINK
+  });
+  climateDataSourceGeoDemo.name = 'demo';
+  // 预加载气候图层
+  // climateDataSourceGeo = await Cesium.KmlDataSource.load('/geo/temp_zone.kml', {
+  //   stroke: Cesium.Color.RED,
+  //   strokeWidth: 2
+  // });
+  // const response = await fetch('/geo/20250414224147715.geojson')
+  // if (!response.ok) throw new Error('网络响应异常')
+  // const originalGeoJSON = await response.json()
+
+  // // 2. 使用 Turf 简化数据
+  // // const simplifiedGeoJSON = simplify(originalGeoJSON, {
+  // //   tolerance: 0.01,
+  // //   highQuality: true
+  // // })
+  // const fixedGeoJSON = rewind(originalGeoJSON, {
+  //   reverse: false,  // 外环逆时针 (false) 或顺时针 (true)
+  //   mutate: false    // 是否直接修改原数据
+  // });
+  // // 使用
+  // // const simplified = turf.simplify(originalGeoJSON, { tolerance: 0.01 });
+  // // const cleaned = sanitizeGeoJSON(simplifiedGeoJSON);
+  // console.log('simplifiedGeoJSON', JSON.stringify(fixedGeoJSON));
+  climateDataSourceGeo = await Cesium.GeoJsonDataSource.load('/geo/20250414220052021.geojson', {
+    stroke: Cesium.Color.RED,
+    strokeWidth: 2,
+    fill: Cesium.Color.YELLOW
   });
   climateDataSourceGeo.name = 'climateLayer';
+  viewer.dataSources.add(climateDataSourceGeo);
   // 显示视口中心的经线上纬度标注
   showLatitudeLabelsOnCenterLongitude();
   // 设置相机变化监听器

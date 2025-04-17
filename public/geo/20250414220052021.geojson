@@ -1,0 +1,40 @@
+{
+  "features": [
+    {
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [
+            [
+              [
+                -20,
+                -90
+              ],
+              [
+                -180,
+                -90
+              ],
+              [
+                -180,
+                90
+              ],
+              [
+                -20,
+                90
+              ],
+              [
+                -20,
+                -90
+              ]
+            ]
+          ]
+        ]
+      },
+      "type": "Feature",
+      "properties": {
+        "name": "������"
+      }
+    }
+  ],
+  "type": "FeatureCollection"
+}
