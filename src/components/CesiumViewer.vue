@@ -535,30 +535,28 @@ onMounted(async () => {
   //   stroke: Cesium.Color.RED,
   //   strokeWidth: 2
   // });
-  // const response = await fetch('/geo/20250414224147715.geojson')
+  // const response = await fetch('/geo/Gadm41-Aus-2.geojson')
   // if (!response.ok) throw new Error('网络响应异常')
   // const originalGeoJSON = await response.json()
 
   // // 2. 使用 Turf 简化数据
-  // // const simplifiedGeoJSON = simplify(originalGeoJSON, {
-  // //   tolerance: 0.01,
-  // //   highQuality: true
-  // // })
-  // const fixedGeoJSON = rewind(originalGeoJSON, {
-  //   reverse: false,  // 外环逆时针 (false) 或顺时针 (true)
-  //   mutate: false    // 是否直接修改原数据
-  // });
+  // const simplifiedGeoJSON = simplify(originalGeoJSON, {
+  //   tolerance: 0.01,
+  //   highQuality: true
+  // })
+  // // const fixedGeoJSON = rewind(originalGeoJSON, {
+  // //   reverse: false,  // 外环逆时针 (false) 或顺时针 (true)
+  // //   mutate: false    // 是否直接修改原数据
+  // // });
   // // 使用
   // // const simplified = turf.simplify(originalGeoJSON, { tolerance: 0.01 });
   // // const cleaned = sanitizeGeoJSON(simplifiedGeoJSON);
-  // console.log('simplifiedGeoJSON', JSON.stringify(fixedGeoJSON));
-  climateDataSourceGeo = await Cesium.GeoJsonDataSource.load('/geo/20250414220052021.geojson', {
+  // console.log('simplifiedGeoJSON', JSON.stringify(simplifiedGeoJSON));
+  climateDataSourceGeo = await Cesium.GeoJsonDataSource.load('/geo/Gadm41-Aus-1.geojson', {
     stroke: Cesium.Color.RED,
     strokeWidth: 2,
-    fill: Cesium.Color.YELLOW
   });
   climateDataSourceGeo.name = 'climateLayer';
-  viewer.dataSources.add(climateDataSourceGeo);
   // 显示视口中心的经线上纬度标注
   showLatitudeLabelsOnCenterLongitude();
   // 设置相机变化监听器
